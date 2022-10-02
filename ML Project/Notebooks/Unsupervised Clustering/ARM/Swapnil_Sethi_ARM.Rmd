@@ -1,0 +1,142 @@
+---
+title: "Assignment_2_ARM"
+author: "Swapnil_Sethi"
+date: "10/1/2022"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+library(viridis)
+library(arules)
+library(TSP)
+library(data.table)
+#library(ggplot2)
+#library(Matrix)
+#library(tcltk)
+library(dplyr)
+#library(devtools)
+library(purrr)
+library(tidyr)
+library(arulesViz)
+```
+
+Gathering Data
+
+## Performing ARM analysis on product Categories
+```{r}
+Categories <- read.transactions("https://raw.githubusercontent.com/swapnilsethi/Machine-Learning-and-Neural-Network/main/ML%20Project/transaction%20data%20for%20ARM/transaction_Categories.csv",
+                             rm.duplicates = FALSE, 
+                             format = "basket",  
+                             sep=",", 
+                             cols=NULL) 
+```
+```{r}
+dim(Categories)
+```
+
+```{r}
+Frules = arules::apriori(Categories, parameter = list(support=.0004, 
+                                          confidence=.1, minlen=2))
+
+inspect(Frules)
+
+```
+I only found 14 rules with support value of 0.00004 and confidence of 10%. Which means either we do not have sufficient data to perform Association Rule Mining or Our consumers do not share that much common trait. 
+
+```{r}
+# Most frequent Items
+itemFrequencyPlot(Categories, topN=20, type="absolute")
+```
+## Sort rules by a measure such as conf, sup, or lift
+
+```{r}
+SortedRules <- sort(Frules, by="confidence", decreasing=TRUE)
+inspect(SortedRules[1:14])
+(summary(SortedRules))
+```
+home_comfort -> bed_bath_table rule have highest confidence, Which means there are 0.54 times it happend that when someone by product related with home comfort they have also purchased bed_bath_table.
+```{r}
+SortedRules <- sort(Frules, by="support", decreasing=TRUE)
+inspect(SortedRules[1:14])
+(summary(SortedRules))
+```
+home_comfort -> bed_bath_table rule have highest support, Which means this transaction occured more times than any other transaction in the dataset.
+
+```{r}
+SortedRules <- sort(Frules, by="lift", decreasing=TRUE)
+inspect(SortedRules[1:14])
+(summary(SortedRules))
+```
+
+Though home_comfort -> bed_bath_table have high confidence value and support value, this transaction don't have highest lift value. Which means there is high chances of buying product from wacthes as well when person purchase product from Audio category. 
+
+## Selecting or targeting specific rules  RHS
+```{r}
+furniture_Rules <- apriori(data=Categories,parameter = list(supp=.001, conf=.01, minlen=2),
+                     appearance = list(default="lhs", rhs="furniture_decor"),
+                     control=list(verbose=FALSE))
+furniture_Rules <- sort(furniture_Rules, decreasing=TRUE, by="confidence")
+inspect(furniture_Rules[1:4])
+
+```
+```{r}
+subrules <- head(sort(SortedRules, by="lift"),14)
+plot(subrules)
+```
+```{r}
+plot(subrules, method="graph", engine="htmlwidget")
+```
+
+
+
+## Performing ARM Analysis on Products
+
+```{r}
+products <- read.transactions("https://raw.githubusercontent.com/swapnilsethi/Machine-Learning-and-Neural-Network/main/ML%20Project/transaction%20data%20for%20ARM/products_transaction.csv",
+                             rm.duplicates = FALSE, 
+                             format = "basket",  
+                             sep=",", 
+                             cols=NULL) 
+```
+
+```{r}
+dim(products)
+```
+
+```{r}
+FrulesP = arules::apriori(products, parameter = list(support=.0005, 
+                                                 confidence=.65, minlen=2))
+
+inspect(FrulesP)
+```
+```{r}
+#Most frequents products
+itemFrequencyPlot(products, topN=20, type="absolute")
+
+```
+
+```{r}
+SortedRules <- sort(FrulesP, by="confidence", decreasing=TRUE)
+inspect(SortedRules[1:14])
+(summary(SortedRules))
+```
+
+These generated rules show which products are likely to be bought (consequents) if the customer has already purchased a set of products (antecedents), with more than 50% probability. These rules can be utilized to understand relationship between products and demand within customers. It can also be used to recommend a product to a customer based on what the customer is currently buying.
+
+```{r}
+subrules <- head(sort(SortedRules, by="lift"),14)
+plot(subrules)
+```
+
+
+```{r}
+plot(subrules, method="graph", engine="htmlwidget")
+
+```
